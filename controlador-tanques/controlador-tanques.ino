@@ -1,3 +1,5 @@
+// Version 1.0
+
 #include <Nextion.h>
 
 // Pines
