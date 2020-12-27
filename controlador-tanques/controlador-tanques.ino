@@ -1,4 +1,6 @@
-// Version 1.0
+constexpr auto version = "1.1 (26/12/2020)";
+
+#define DEBUG_SERIAL_ENABLE 1
 
 #include <Nextion.h>
 
@@ -12,8 +14,8 @@ constexpr int sa3 = 33;
 constexpr int bomba = 35;
 constexpr int salidas[] = {en1, en2, en3, sa1, sa2, sa3, bomba};
 
-constexpr int sensor1 = 39;
-constexpr int sensor2 = 41;
+constexpr int sensor1 = 22;
+constexpr int sensor2 = 24;
 constexpr int entradas[] = {sensor1, sensor2};
 
 // Componentes de la interfaz
@@ -113,7 +115,7 @@ void recir2Callback(void*) { tanqueSeleccionado = 2; }
 void recir3Callback(void*) { tanqueSeleccionado = 3; }
 
 void recircular(int tanque, int minutos) {
-  switch (tanque) {  
+  switch (tanque) {
   case 1:
     digitalWrite(en1, LOW);
     digitalWrite(sa1, LOW);
@@ -135,7 +137,7 @@ void recircular(int tanque, int minutos) {
 
   temporizadorRecirculado = millis() + static_cast<unsigned long long>(minutos) * 60ull * 1000ull;
   temporizadorEncenderBomba = millis() + 3000;
-  
+
   temporizadorActualizarPantalla = millis();
   minutosRecirculados = minutos;
 }
@@ -166,7 +168,7 @@ void setup() {
   bTiempo5.attachPop(tiempo5Callback);
   bTiempo10.attachPop(tiempo10Callback);
   bTiempo20.attachPop(tiempo20Callback);
-  
+
   // pin setup
   for (int pin : salidas) {
     pinMode(pin, OUTPUT);
@@ -174,13 +176,15 @@ void setup() {
   for (int pin : entradas) {
     pinMode(pin, INPUT_PULLUP);
   }
-  
+
   // All off on init
   for (int pin : salidas) {
     digitalWrite(pin, HIGH);
   }
 
   dbSerialPrintln("Setup done");
+  dbSerialPrint("Version: ");
+  dbSerialPrintln(version);
 }
 
 void loop() {
@@ -190,10 +194,10 @@ void loop() {
     digitalWrite(bomba, LOW);
     temporizadorEncenderBomba = -1;
   }
-  
+
   if (ahora >= temporizadorRecirculado && estado != NADA) {
     digitalWrite(bomba, HIGH);
-    
+
     if (estado == RECIRCULANDO1) {
       digitalWrite(en1, HIGH);
       digitalWrite(sa1, HIGH);
@@ -233,7 +237,7 @@ void loop() {
 
       tSegundos.setText(segundosTexto);
       tMinutos.setText(minutosTexto);
-      
+
       temporizadorActualizarPantalla = millis() + 1000;
     } else {
       temporizadorActualizarPantalla = -1;
@@ -245,7 +249,7 @@ void loop() {
   auto flotador2 = digitalRead(sensor2);
 
   if (flotador1 == LOW && estado == LLENANDO1) {
-    
+    dbSerialPrintln("Detecto sensor 1. Finalizando ciclo.");
     digitalWrite(en1, HIGH);
     digitalWrite(sa3, HIGH);
     digitalWrite(bomba, HIGH);
@@ -254,6 +258,7 @@ void loop() {
   }
 
   if (flotador2 == LOW && estado == LLENANDO2) {
+    dbSerialPrintln("Detecto sensor 2. Finalizando ciclo.");
     digitalWrite(en2, HIGH);
     digitalWrite(sa3, HIGH);
     digitalWrite(bomba, HIGH);
@@ -261,7 +266,7 @@ void loop() {
     estado = NADA;
   }
 
-  
-  
+
+
   nexLoop(nex_listen_list);
 }
