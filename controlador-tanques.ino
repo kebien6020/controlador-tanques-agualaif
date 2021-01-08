@@ -1,4 +1,4 @@
-constexpr auto version = "1.1 (26/12/2020)";
+constexpr auto version = "1.2 (07/01/2021)";
 
 #define DEBUG_SERIAL_ENABLE 1
 
