@@ -2,7 +2,9 @@ constexpr auto version = "1.1 (26/12/2020)";
 
 #define DEBUG_SERIAL_ENABLE 1
 
-#include <Nextion.h>
+#include "Nextion.h"
+
+constexpr auto PUMP_SAFETY_TIMEOUT = 27 * 60 * 1000; // ms
 
 // Pines
 constexpr int en1 = 23;
@@ -69,6 +71,7 @@ NexTouch* nex_listen_list[] = {
 unsigned long long temporizadorEncenderBomba = -1;
 unsigned long long temporizadorRecirculado = -1;
 unsigned long long temporizadorActualizarPantalla = -1;
+unsigned long long timestampPumpWasStarted = 0ull;
 int tanqueSeleccionado = -1;
 int minutosRecirculados = -1;
 
@@ -187,12 +190,22 @@ void setup() {
   dbSerialPrintln(version);
 }
 
+
+void startPump() {
+  digitalWrite(bomba, LOW);
+  timestampPumpWasStarted = millis();
+  temporizadorEncenderBomba = -1;
+}
+
+void stopPump() {
+  digitalWrite(bomba, HIGH);
+}
+
 void loop() {
   // Temporizadores
   auto ahora = millis();
   if (ahora >= temporizadorEncenderBomba && estado != NADA) {
-    digitalWrite(bomba, LOW);
-    temporizadorEncenderBomba = -1;
+    startPump();
   }
 
   if (ahora >= temporizadorRecirculado && estado != NADA) {
@@ -244,6 +257,15 @@ void loop() {
     }
   }
 
+  // Verify pump timeout
+  const long pump_running_duration = ahora - timestampPumpWasStarted;
+  if (pump_running_duration >= PUMP_SAFETY_TIMEOUT) {
+    stopPump();
+    sendCommand("page 0");
+    estado = NADA;
+  }
+
+
   // Sensores
   auto flotador1 = digitalRead(sensor1);
   auto flotador2 = digitalRead(sensor2);
@@ -252,7 +274,7 @@ void loop() {
     dbSerialPrintln("Detecto sensor 1. Finalizando ciclo.");
     digitalWrite(en1, HIGH);
     digitalWrite(sa3, HIGH);
-    digitalWrite(bomba, HIGH);
+    stopPump();
     sendCommand("page 0");
     estado = NADA;
   }
@@ -261,7 +283,7 @@ void loop() {
     dbSerialPrintln("Detecto sensor 2. Finalizando ciclo.");
     digitalWrite(en2, HIGH);
     digitalWrite(sa3, HIGH);
-    digitalWrite(bomba, HIGH);
+    stopPump();
     sendCommand("page 0");
     estado = NADA;
   }
